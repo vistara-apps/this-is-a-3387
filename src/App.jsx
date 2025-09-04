@@ -5,23 +5,13 @@ import MemeGenerator from './components/MemeGenerator';
 import Templates from './components/Templates';
 import Gallery from './components/Gallery';
 import Footer from './components/Footer';
+import { useUserContext } from './hooks/useUserContext.jsx';
+import { useMemeContext } from './hooks/useMemeContext.jsx';
 
 function App() {
   const [activeTab, setActiveTab] = useState('create');
-  const [credits, setCredits] = useState(3); // Start with 3 free credits
-  const [generatedMemes, setGeneratedMemes] = useState([]);
-
-  const addGeneratedMeme = (meme) => {
-    setGeneratedMemes(prev => [meme, ...prev]);
-  };
-
-  const useCredit = () => {
-    setCredits(prev => Math.max(0, prev - 1));
-  };
-
-  const addCredits = (amount) => {
-    setCredits(prev => prev + amount);
-  };
+  const { credits, useCredit, addCredits, isConnected } = useUserContext();
+  const { userMemes, addMeme } = useMemeContext();
 
   return (
     <div className="min-h-screen gradient-bg">
@@ -31,7 +21,7 @@ function App() {
         {activeTab === 'home' && (
           <div className="space-y-16">
             <Hero onGetStarted={() => setActiveTab('create')} />
-            <Gallery memes={generatedMemes} />
+            <Gallery memes={userMemes} />
           </div>
         )}
         
@@ -40,7 +30,7 @@ function App() {
             <MemeGenerator 
               credits={credits}
               onUseCredit={useCredit}
-              onAddMeme={addGeneratedMeme}
+              onAddMeme={addMeme}
               onAddCredits={addCredits}
             />
           </div>
@@ -51,7 +41,7 @@ function App() {
             <Templates 
               credits={credits}
               onUseCredit={useCredit}
-              onAddMeme={addGeneratedMeme}
+              onAddMeme={addMeme}
               onAddCredits={addCredits}
             />
           </div>
@@ -59,7 +49,7 @@ function App() {
         
         {activeTab === 'gallery' && (
           <div className="pt-8">
-            <Gallery memes={generatedMemes} />
+            <Gallery memes={userMemes} />
           </div>
         )}
       </main>

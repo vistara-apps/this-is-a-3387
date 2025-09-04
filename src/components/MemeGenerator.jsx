@@ -1,27 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Card from './ui/Card';
 import SocialShareButton from './ui/SocialShareButton';
 import { usePaymentContext } from '../hooks/usePaymentContext';
-import { generateMemeWithAI } from '../utils/aiGeneration';
+import { generateMemeWithAI, generateMemeSuggestions } from '../utils/aiGeneration';
+import { useUserContext } from '../hooks/useUserContext.jsx';
+import toast from 'react-hot-toast';
 
 function MemeGenerator({ credits, onUseCredit, onAddMeme, onAddCredits }) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedMeme, setGeneratedMeme] = useState(null);
   const [error, setError] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
   
   const { createSession } = usePaymentContext();
+  const { isConnected } = useUserContext();
+
+  // Load meme suggestions on component mount
+  useEffect(() => {
+    loadSuggestions();
+  }, []);
+
+  const loadSuggestions = async () => {
+    try {
+      const newSuggestions = await generateMemeSuggestions();
+      setSuggestions(newSuggestions);
+    } catch (error) {
+      console.error('Failed to load suggestions:', error);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError('Please enter a meme description');
+      toast.error('Please enter a meme description');
       return;
     }
 
     if (credits <= 0) {
       setError('No credits remaining. Please purchase more credits.');
+      toast.error('No credits remaining. Please purchase more credits.');
+      return;
+    }
+
+    if (!isConnected) {
+      setError('Please connect your wallet to generate memes');
+      toast.error('Please connect your wallet to generate memes');
       return;
     }
 
@@ -29,17 +55,28 @@ function MemeGenerator({ credits, onUseCredit, onAddMeme, onAddCredits }) {
     setError('');
 
     try {
-      // Use a credit
-      onUseCredit();
+      // Use a credit first
+      const creditUsed = await onUseCredit();
+      if (!creditUsed) {
+        setIsGenerating(false);
+        return;
+      }
       
       // Generate meme with AI
       const memeData = await generateMemeWithAI(prompt);
       
       setGeneratedMeme(memeData);
-      onAddMeme(memeData);
+      await onAddMeme(memeData);
       setPrompt('');
+      
+      if (memeData.isDemo) {
+        toast.success('Demo meme generated! Connect API keys for real AI generation.');
+      } else {
+        toast.success('Meme generated successfully!');
+      }
     } catch (err) {
       setError('Failed to generate meme. Please try again.');
+      toast.error('Failed to generate meme. Please try again.');
       console.error('Meme generation error:', err);
     } finally {
       setIsGenerating(false);
@@ -47,12 +84,20 @@ function MemeGenerator({ credits, onUseCredit, onAddMeme, onAddCredits }) {
   };
 
   const handlePayForCredits = async () => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet to purchase credits');
+      return;
+    }
+
     try {
-      await createSession();
-      onAddCredits(10); // Add 10 credits after payment
-      setError('');
+      const paymentData = await createSession();
+      const success = await onAddCredits(10, paymentData); // Add 10 credits after payment
+      if (success) {
+        setError('');
+      }
     } catch (err) {
       setError('Payment failed. Please try again.');
+      toast.error('Payment failed. Please try again.');
       console.error('Payment error:', err);
     }
   };
@@ -159,22 +204,36 @@ function MemeGenerator({ credits, onUseCredit, onAddMeme, onAddCredits }) {
                   variant="twitter"
                   imageUrl={generatedMeme.imageUrl}
                   prompt={generatedMeme.prompt}
+                  memeId={generatedMeme.id}
+                />
+                <SocialShareButton
+                  variant="facebook"
+                  imageUrl={generatedMeme.imageUrl}
+                  prompt={generatedMeme.prompt}
+                  memeId={generatedMeme.id}
+                />
+                <SocialShareButton
+                  variant="reddit"
+                  imageUrl={generatedMeme.imageUrl}
+                  prompt={generatedMeme.prompt}
+                  memeId={generatedMeme.id}
+                />
+                <SocialShareButton
+                  variant="whatsapp"
+                  imageUrl={generatedMeme.imageUrl}
+                  prompt={generatedMeme.prompt}
+                  memeId={generatedMeme.id}
                 />
                 <SocialShareButton
                   variant="copyLink"
                   imageUrl={generatedMeme.imageUrl}
+                  memeId={generatedMeme.id}
                 />
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = generatedMeme.imageUrl;
-                    link.download = `meme-${Date.now()}.jpg`;
-                    link.click();
-                  }}
-                >
-                  📥 Download
-                </Button>
+                <SocialShareButton
+                  variant="download"
+                  imageUrl={generatedMeme.imageUrl}
+                  memeId={generatedMeme.id}
+                />
               </div>
             </div>
           </div>
@@ -183,14 +242,19 @@ function MemeGenerator({ credits, onUseCredit, onAddMeme, onAddCredits }) {
 
       {/* Example Prompts */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Need inspiration? Try these:</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-white">Need inspiration? Try these:</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={loadSuggestions}
+            className="text-white/60 hover:text-white"
+          >
+            🔄 Refresh
+          </Button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {[
-            "A dog wearing a business suit at a computer saying 'This is fine'",
-            "Surprised pikachu face but it's a cat discovering catnip",
-            "Drake pointing at 'AI generated memes' and rejecting 'manually made memes'",
-            "Woman yelling at confused cat but they're both robots"
-          ].map((example, index) => (
+          {suggestions.map((example, index) => (
             <button
               key={index}
               onClick={() => setPrompt(example)}
@@ -200,6 +264,11 @@ function MemeGenerator({ credits, onUseCredit, onAddMeme, onAddCredits }) {
             </button>
           ))}
         </div>
+        {suggestions.length === 0 && (
+          <div className="text-center text-white/60 py-4">
+            Loading suggestions...
+          </div>
+        )}
       </Card>
     </div>
   );
