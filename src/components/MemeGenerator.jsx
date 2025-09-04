@@ -5,7 +5,7 @@ import Card from './ui/Card';
 import SocialShareButton from './ui/SocialShareButton';
 import { usePaymentContext } from '../hooks/usePaymentContext';
 import { generateMemeWithAI, generateMemeSuggestions } from '../utils/aiGeneration';
-import { useUserContext } from '../hooks/useUserContext';
+import { useUserContext } from '../hooks/useUserContext.jsx';
 import toast from 'react-hot-toast';
 
 function MemeGenerator({ credits, onUseCredit, onAddMeme, onAddCredits }) {

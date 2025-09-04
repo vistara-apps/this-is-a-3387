@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { saveMeme, getUserMemes, getPublicMemes, recordMemeGeneration } from '../utils/supabase';
-import { useUserContext } from './useUserContext';
+import { useUserContext } from './useUserContext.jsx';
 import toast from 'react-hot-toast';
 
 const MemeContext = createContext();

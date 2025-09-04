@@ -20,8 +20,8 @@ import { Toaster } from 'react-hot-toast';
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
-import { UserProvider } from './hooks/useUserContext.js'
-import { MemeProvider } from './hooks/useMemeContext.js'
+import { UserProvider } from './hooks/useUserContext.jsx'
+import { MemeProvider } from './hooks/useMemeContext.jsx'
 import './index.css'
 
 const queryClient = new QueryClient({

@@ -5,8 +5,8 @@ import MemeGenerator from './components/MemeGenerator';
 import Templates from './components/Templates';
 import Gallery from './components/Gallery';
 import Footer from './components/Footer';
-import { useUserContext } from './hooks/useUserContext';
-import { useMemeContext } from './hooks/useMemeContext';
+import { useUserContext } from './hooks/useUserContext.jsx';
+import { useMemeContext } from './hooks/useMemeContext.jsx';
 
 function App() {
   const [activeTab, setActiveTab] = useState('create');
